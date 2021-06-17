@@ -86,7 +86,9 @@
       <tbody>
         <tr v-for="(row, a) in rows" :key="row.id">
           <td v-for="(cell, i) in cells[a]" :key="i" class="c-datatable__cell">
-            {{ cell }}
+            <slot :name="`cell(${[columns[i].key]})`" :data="cell">
+              {{ cell }}
+            </slot>
           </td>
         </tr>
       </tbody>
