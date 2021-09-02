@@ -398,8 +398,6 @@ export default {
             const stripKey = col.key.split('.');
             const slotId = col.slotId.replace('.', '');
 
-            console.log(slotId);
-
             if (stripKey.length < 2) {
               // This if statement is for to support cells that don't have backend column
               if (currentItem[stripKey[0]] == undefined) {
