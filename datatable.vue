@@ -1,59 +1,83 @@
 <template>
   <div>
-    <div v-if="hasSearch">
-      <ValidationObserver ref="searchForm" tag="div">
-        <form class="row" @submit.prevent>
-          <!-- Arama Tipi -->
-          <div class="col col--md-5 col--lg-3">
-            <ValidationProvider
-              v-slot="{ errors }"
-              name="Arama Tipi"
-              rules="required"
-              class="u-margin-bottom"
-              tag="div"
-            >
-              <label for="">
-                Arama Tipi
-                <v-select
-                  v-model="form.searchTypesCurrent"
-                  :class="errors.length > 0 ? 'is-invalid' : null"
-                  :options="form.searchTypes"
-                  placeholder="Seçiniz"
-                >
-                  <div slot="no-options">Herhangi bir sonuç bulunamadı.</div>
-                </v-select>
-              </label>
-              <div class="u-color-danger">{{ errors[0] }}</div>
-            </ValidationProvider>
-          </div>
+    <div class="u-display-flex u-align-items-center u-flex-wrap-wrap">
+      <div v-if="title.length > 0" class="u-margin-right-auto">
+        <h3 class="h1 u-margin-bottom-large">{{ title }}</h3>
+      </div>
 
-          <div class="col col--md-5">
-            <!-- Anahter Kelime -->
-            <ValidationProvider
-              v-slot="{ errors }"
-              name="Anahter Kelime"
-              rules="required"
-              class="u-margin-bottom"
-              tag="div"
-            >
-              <label for="">
-                Anahtar Kelime
-                <Input
-                  v-model="form.searchTerm"
-                  :is-invalid="errors.length > 0"
-                  tag="input"
-                  input-element="input"
-                  input-type="text"
-                  placeholder="Yazınız"
-                />
-              </label>
-              <div class="u-color-danger">{{ errors[0] }}</div>
-            </ValidationProvider>
-          </div>
+      <div v-if="hasFilter">
+        <Button
+          theme="primary-submit"
+          class="u-margin-bottom-large"
+          tag="button"
+          type="button"
+          @click.native="filterModal = true"
+        >
+          Filtrele
+        </Button>
 
-          <div class="col col--md-5 col--lg-4 u-margin-bottom">
+        <Modal v-model="filterModal">
+          <template #header>Filtrele </template>
+
+          <template #content>
+            <ValidationObserver ref="searchForm" tag="div">
+              <form @submit.prevent>
+                <div class="row">
+                  <!-- Sütunlar-->
+                  <div class="col col--lg-6">
+                    <ValidationProvider
+                      v-slot="{ errors }"
+                      name="Sütunlar"
+                      class="u-margin-bottom-large"
+                      tag="div"
+                    >
+                      <label for="">
+                        Sütunlar
+                        <v-select
+                          v-model="form.searchTypesCurrent"
+                          :class="errors.length > 0 ? 'is-invalid' : null"
+                          :options="form.searchTypes"
+                          placeholder="Seçiniz"
+                          multiple
+                        >
+                          <div slot="no-options">Herhangi bir sonuç bulunamadı.</div>
+                        </v-select>
+                      </label>
+                      <div class="u-color-danger">{{ errors[0] }}</div>
+                    </ValidationProvider>
+                  </div>
+
+                  <!-- Anahtar Kelime -->
+                  <div class="col col--lg-6">
+                    <ValidationProvider
+                      v-slot="{ errors }"
+                      name="Anahtar Kelime"
+                      class="u-margin-bottom-large"
+                      tag="div"
+                    >
+                      <label for="">
+                        Anahtar Kelime
+                        <Input
+                          v-model="form.searchTerm"
+                          :is-invalid="errors.length > 0"
+                          tag="input"
+                          input-element="input"
+                          input-type="text"
+                          placeholder="Yazınız"
+                        />
+                      </label>
+
+                      <div class="u-color-danger">{{ errors[0] }}</div>
+                    </ValidationProvider>
+                  </div>
+                </div>
+              </form>
+            </ValidationObserver>
+          </template>
+
+          <template #footer>
             <Button
-              theme="primary-submit"
+              theme="primary"
               class="u-margin-top"
               tag="button"
               type="submit"
@@ -61,42 +85,50 @@
             >
               Ara
             </Button>
-          </div>
-        </form>
-      </ValidationObserver>
+          </template>
+        </Modal>
+      </div>
     </div>
 
-    <table class="c-datatable">
-      <thead>
-        <tr>
-          <th
-            v-for="column in columns"
-            :key="column.key"
-            ref="tableHead"
-            :data-column-key="column.key"
-            :tabindex="column.sortable ? '0' : false"
-            :class="['c-datatable__head', column.sortable ? CLASSES.IS_SORTABLE : null]"
-            v-on="column.sortable ? { click: $event => handleSortable($event.target) } : {}"
-          >
-            {{ column.title }}
-          </th>
-        </tr>
-      </thead>
+    <div class="c-datatable">
+      <table class="c-datatable__table">
+        <thead>
+          <tr>
+            <th
+              v-for="(column, i) in columns"
+              :key="`${column.key}${i}`"
+              ref="tableHead"
+              :data-column-key="column.key"
+              :tabindex="column.sortable ? '0' : false"
+              :class="['c-datatable__head', column.sortable ? CLASSES.IS_SORTABLE : null]"
+              v-on="column.sortable ? { click: $event => handleSortable($event.target) } : {}"
+            >
+              {{ column.title }}
+            </th>
+          </tr>
+        </thead>
 
-      <tbody>
-        <tr v-for="(row, a) in rows" :key="row.id">
-          <td v-for="(cell, i) in cells[a]" :key="i" class="c-datatable__cell">
-            <slot :name="`cell(${[columns[i].key]})`" :data="cell">
-              {{ cell }}
-            </slot>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+        <tbody>
+          <tr v-for="(row, a) in rows" :key="randomKey(row[a])">
+            <td v-for="(cell, i) in row" :key="i" class="c-datatable__cell">
+              <slot :name="`cell(${cell.slotId})`" :data="cell">
+                {{ cell.data }}
+              </slot>
+            </td>
+          </tr>
 
-    <div class="row u-font-size-small u-margin-top-xsmall">
+          <tr v-if="rows.length < 1">
+            <td :colspan="columns.length">
+              <p class="u-text-align-center u-padding-ends-small">Herhangi bir veri bulunamadı.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-if="rows.length > 0" class="row u-font-size-small u-margin-top-xsmall">
       <div class="col col--md-4 u-flexbox-vertical-center">
-        {{ statistics.total }} sonuç arasından {{ statistics.from }} aralığı
+        {{ statistics.total }} sonuç arasından {{ statistics.from }} aralığı ile
         {{ statistics.to }} gösteriliyor
       </div>
 
@@ -129,7 +161,7 @@
 </template>
 
 <script>
-import { TABLE_NAMES, TABLE_USER_GROUPS } from '~/graphql/queries/tables';
+import { randomKey } from '~/utils/randomKey';
 
 export default {
   props: {
@@ -138,14 +170,24 @@ export default {
       default: () => [],
     },
 
-    hasSearch: {
+    hasFilter: {
       type: Boolean,
       default: true,
     },
 
     queryName: {
+      type: Object,
+      default: () => {},
+    },
+
+    title: {
       type: String,
       default: '',
+    },
+
+    id: {
+      type: Number,
+      default: null,
     },
   },
 
@@ -170,8 +212,8 @@ export default {
 
       pagination: {
         currentPage: 1,
-        totalPageCount: 100,
-        visiblePageCount: 5,
+        totalPageCount: 1,
+        visiblePageCount: 1,
       },
 
       rows: [],
@@ -181,15 +223,14 @@ export default {
       rowCountSelectOptions: [10, 20, 50, 100],
 
       statistics: {
-        total: null,
-        from: null,
-        to: null,
+        total: 0,
+        from: 0,
+        to: 0,
       },
 
       form: {
-        searchTypesCurrent: null,
+        searchTypesCurrent: [],
         searchTypes: [],
-
         searchTerm: null,
       },
 
@@ -201,6 +242,8 @@ export default {
         page: '',
         limit: '',
       },
+
+      filterModal: false,
     };
   },
 
@@ -219,10 +262,14 @@ export default {
 
   mounted() {
     // Replace title key to label
-    this.form.searchTypes = this.columns.map(({ title: label, ...rest }) => ({
-      label,
-      ...rest,
-    }));
+    this.form.searchTypes = this.columns
+      .filter(col => {
+        return col.searchable;
+      })
+      .map(({ title: label, ...rest }) => ({
+        label,
+        ...rest,
+      }));
 
     this.getTableData({
       searchText: '',
@@ -235,6 +282,8 @@ export default {
   },
 
   methods: {
+    randomKey,
+
     handlePageChange(pageNumber) {
       this.getTableData({
         searchText: this.currentParams.searchText,
@@ -288,12 +337,16 @@ export default {
         if (success) {
           this.getTableData({
             searchText: this.form.searchTerm,
-            searchColumn: this.form.searchTypesCurrent.key,
-            orderColumn: this.form.searchTypesCurrent.key,
+            searchColumn: this.form.searchTypesCurrent.key
+              ? this.form.searchTypesCurrent.key
+              : null,
+            orderColumn: this.form.searchTypesCurrent.key ? this.form.searchTypesCurrent.key : null,
             orderDirection: this.ORDER_DIRECTIONS.ASC,
             page: 1,
             limit: 10,
           });
+
+          this.filterModal = false;
         }
       });
     },
@@ -302,41 +355,93 @@ export default {
       const { searchText, searchColumn, orderColumn, orderDirection, page, limit } = params;
 
       try {
-        const response = await this.$apollo.query({
-          query: this.queryName == TABLE_NAMES.USER_GROUPS ? TABLE_USER_GROUPS : null,
-          variables: {
-            searchText,
-            searchColumn,
-            orderColumn,
-            orderDirection,
-            page,
-            limit: parseInt(limit, 10),
-          },
-        });
+        let response;
 
-        // Since query names can not be dynamic, we should create a dynamic way.
-        // Server response is an object with query name key.
-        // That's why we are creating an array to access to data with index.
-        const result = Object.keys(response.data).map(key => [key, response.data[key]]);
-
-        this.statistics.total = result[0][1].total;
-        this.statistics.from = result[0][1].from;
-        this.statistics.to = result[0][1].to;
-
-        // Since pagination components handles page change we should not set
-        // this.pagination.currentPage = result[0][1].current_page;
-        this.pagination.totalPageCount = parseInt(result[0][1].last_page, 10);
+        if (this.id) {
+          response = await this.$apollo.query({
+            query: this.queryName,
+            variables: {
+              searchText,
+              searchColumn,
+              orderColumn,
+              orderDirection,
+              page,
+              limit: parseInt(limit, 10),
+              id: this.id,
+            },
+          });
+        } else {
+          response = await this.$apollo.query({
+            query: this.queryName,
+            variables: {
+              searchText,
+              searchColumn,
+              orderColumn,
+              orderDirection,
+              page,
+              limit: parseInt(limit, 10),
+            },
+          });
+        }
 
         this.cells = [];
-        this.rows = result[0][1].data;
+        this.rows = [];
 
-        Object.values(this.rows).forEach(currentItem => {
-          const cellArray = Object.values(currentItem);
+        let cellsTemp = [];
 
-          cellArray.pop();
+        const data = response.data[Object.keys(response.data)[0]];
 
-          this.cells.push(cellArray);
+        data.data.forEach(currentItem => {
+          cellsTemp = [];
+
+          this.columns.forEach(col => {
+            const stripKey = col.key.split('.');
+            const slotId = col.slotId.replace('.', '');
+
+            console.log(slotId);
+
+            if (stripKey.length < 2) {
+              // This if statement is for to support cells that don't have backend column
+              if (currentItem[stripKey[0]] == undefined) {
+                cellsTemp.push({ key: col.key, slotId, data: {} });
+              } else {
+                cellsTemp.push({
+                  key: col.key,
+                  slotId,
+                  data: currentItem[stripKey[0]],
+                });
+              }
+            } else if (stripKey.length === 2) {
+              cellsTemp.push({
+                key: col.key,
+                slotId,
+                data: currentItem[stripKey[0]][stripKey[1]],
+              });
+            } else if (stripKey.length === 3) {
+              cellsTemp.push({
+                key: col.key,
+                slotId,
+                data: currentItem[stripKey[0]][stripKey[1]][stripKey[2]],
+              });
+            } else if (stripKey.length === 4) {
+              cellsTemp.push({
+                key: col.key,
+                slotId,
+                data: currentItem[stripKey[0]][stripKey[1]][stripKey[2]][stripKey[3]],
+              });
+            }
+          });
+
+          this.rows.push(cellsTemp);
         });
+
+        this.statistics.total = data.total;
+        this.statistics.from = data.from;
+        this.statistics.to = data.to;
+
+        // Since pagination components handles page change we should not set
+        this.pagination.currentPage = data.current_page;
+        this.pagination.totalPageCount = data.last_page;
 
         this.currentParams.searchText = searchText;
         this.currentParams.searchColumn = searchColumn;
@@ -345,7 +450,7 @@ export default {
         this.currentParams.page = page;
         this.currentParams.limit = limit;
       } catch (error) {
-        if (process.env.NUXT_ENV_MODE === 'development') console.log(error);
+        if (this.checkApiRequestErrors({ that: this, error })) return;
       }
     },
   },
@@ -353,85 +458,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/abstracts/index';
-
-.c-datatable {
-  $triangle-size: px-to-rem(6px);
-  $triangle-initial-color: color-palette('gray', 500);
-  $triangle-active-color: color-palette('gray', 900);
-  $triangle-gaps: px-to-rem(2px);
-
-  $class-is-sortable: 'is-sortable';
-  $class-is-ascending: 'is-ascending';
-  $class-is-descending: 'is-descending';
-
-  width: 100%;
-
-  &__head {
-    position: relative;
-    padding: pad(2xsmall) pad(3xsmall);
-    background-color: rgba($color-primary, 0.1);
-    color: $g-text-color;
-    line-height: 1;
-    user-select: none;
-
-    &.#{$class-is-sortable} {
-      cursor: pointer;
-    }
-
-    &.#{$class-is-sortable}::before,
-    &.#{$class-is-sortable}::after {
-      position: absolute;
-      right: px-to-rem(8px);
-    }
-
-    &.#{$class-is-sortable}::before {
-      @include css-triangle($triangle-size, $triangle-initial-color, top);
-
-      top: 50%;
-      transform: translate3d(0, calc(-50% + #{$triangle-gaps / 2} + #{$triangle-size}), 0);
-    }
-
-    &.#{$class-is-sortable}::after {
-      @include css-triangle($triangle-size, $triangle-initial-color, bottom);
-
-      bottom: 50%;
-      transform: translate3d(0, calc(-50% - #{$triangle-gaps / 2} + #{$triangle-size}), 0);
-    }
-
-    &.#{$class-is-descending}::before {
-      border-top-color: $triangle-active-color;
-    }
-
-    &.#{$class-is-ascending}::after {
-      border-bottom-color: $triangle-active-color;
-    }
-  }
-
-  &__cell {
-    padding: pad(4xsmall) pad(3xsmall);
-  }
-
-  tr {
-    &:nth-of-type(even) {
-      // stylelint-disable-next-line selector-max-specificity
-      .c-datatable__cell {
-        background-color: rgba($color-primary, 0.05);
-      }
-    }
-    &:hover {
-      // stylelint-disable-next-line selector-max-specificity
-      .c-datatable__cell {
-        background-color: rgba($color-primary, 0.07);
-      }
-    }
-  }
-}
-
+@import './Datatable';
 </style>
 
 <style lang="scss">
-@import '../../assets/styles/abstracts/index';
+@import '~assets/styles/abstracts/index';
 
 .v-select.datatable-row-select {
   display: inline-block;
