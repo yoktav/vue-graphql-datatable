@@ -1,9 +1,5 @@
 import gql from 'graphql-tag';
 
-export const TABLE_NAMES = {
-  USER_GROUPS: 'user-groups',
-};
-
 export const TABLE_USER_GROUPS = gql`
   query tableUserGroups(
     $searchText: String
