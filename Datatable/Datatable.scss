@@ -1,0 +1,80 @@
+@import '~assets/styles/abstracts/index';
+
+.c-datatable {
+  $triangle-size: px-to-rem(6px);
+  $triangle-initial-color: color-palette('gray', 500);
+  $triangle-active-color: color-palette('gray', 900);
+  $triangle-gaps: px-to-rem(2px);
+
+  $class-is-sortable: 'is-sortable';
+  $class-is-ascending: 'is-ascending';
+  $class-is-descending: 'is-descending';
+
+  width: 100%;
+  overflow-x: auto;
+
+  &__table {
+    width: 100%;
+  }
+
+  &__head {
+    position: relative;
+    min-width: px-to-rem(80px);
+    padding: pad(2xsmall) pad(small) pad(2xsmall) pad(3xsmall);
+    background-color: rgba($color-primary, 0.1);
+    color: $g-text-color;
+    line-height: 1;
+    user-select: none;
+
+    &.#{$class-is-sortable} {
+      cursor: pointer;
+    }
+
+    &.#{$class-is-sortable}::before,
+    &.#{$class-is-sortable}::after {
+      position: absolute;
+      right: px-to-rem(8px);
+    }
+
+    &.#{$class-is-sortable}::before {
+      @include css-triangle($triangle-size, $triangle-initial-color, top);
+      top: 50%;
+
+      transform: translate3d(0, calc(-50% + #{$triangle-gaps / 2} + #{$triangle-size}), 0);
+    }
+
+    &.#{$class-is-sortable}::after {
+      @include css-triangle($triangle-size, $triangle-initial-color, bottom);
+      bottom: 50%;
+
+      transform: translate3d(0, calc(-50% - #{$triangle-gaps / 2} + #{$triangle-size}), 0);
+    }
+
+    &.#{$class-is-descending}::before {
+      border-top-color: $triangle-active-color;
+    }
+
+    &.#{$class-is-ascending}::after {
+      border-bottom-color: $triangle-active-color;
+    }
+  }
+
+  &__cell {
+    padding: pad(4xsmall) pad(3xsmall) pad(4xsmall) pad(3xsmall);
+  }
+
+  tr {
+    &:nth-of-type(even) {
+      // stylelint-disable-next-line selector-max-specificity
+      .c-datatable__cell {
+        background-color: rgba($color-primary, 0.05);
+      }
+    }
+    &:hover {
+      // stylelint-disable-next-line selector-max-specificity
+      .c-datatable__cell {
+        background-color: rgba($color-primary, 0.07);
+      }
+    }
+  }
+}
