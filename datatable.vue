@@ -109,7 +109,13 @@
         </thead>
 
         <tbody>
-          <tr v-for="(row, a) in rows" :key="randomKey(row[a])">
+          <tr v-if="isLoading">
+            <td class="u-text-align-center u-padding" :colspan="columns.length">
+              <LoadingSpinner />
+            </td>
+          </tr>
+
+          <tr v-for="(row, a) in rows" v-else :key="randomKey(row[a])">
             <td v-for="(cell, i) in row" :key="i" class="c-datatable__cell">
               <slot :name="`cell(${cell.slotId})`" :data="cell">
                 {{ cell.data }}
@@ -184,11 +190,6 @@ export default {
       type: String,
       default: '',
     },
-
-    id: {
-      type: Number,
-      default: null,
-    },
   },
 
   data() {
@@ -213,7 +214,7 @@ export default {
       pagination: {
         currentPage: 1,
         totalPageCount: 1,
-        visiblePageCount: 1,
+        visiblePageCount: 5,
       },
 
       rows: [],
@@ -243,6 +244,7 @@ export default {
         limit: '',
       },
 
+      isLoading: true,
       filterModal: false,
     };
   },
@@ -270,6 +272,13 @@ export default {
         label,
         ...rest,
       }));
+
+    if (this.form.searchTypes.length < 1) {
+      this.form.searchTypes = this.columns.map(({ title: label, ...rest }) => ({
+        label,
+        ...rest,
+      }));
+    }
 
     this.getTableData({
       searchText: '',
@@ -328,7 +337,7 @@ export default {
         orderColumn: currentElement.getAttribute(this.NODE_DATASETS.COLUMN_KEY),
         orderDirection: currentElement.getAttribute(this.NODE_DATASETS.ORDER_DIRECTION),
         page: 1,
-        limit: 10,
+        limit: this.currentParams.limit,
       });
     },
 
@@ -343,7 +352,7 @@ export default {
             orderColumn: this.form.searchTypesCurrent.key ? this.form.searchTypesCurrent.key : null,
             orderDirection: this.ORDER_DIRECTIONS.ASC,
             page: 1,
-            limit: 10,
+            limit: this.currentParams.limit,
           });
 
           this.filterModal = false;
@@ -354,35 +363,22 @@ export default {
     async getTableData(params) {
       const { searchText, searchColumn, orderColumn, orderDirection, page, limit } = params;
 
+      this.isLoading = true;
+
       try {
         let response;
 
-        if (this.id) {
-          response = await this.$apollo.query({
-            query: this.queryName,
-            variables: {
-              searchText,
-              searchColumn,
-              orderColumn,
-              orderDirection,
-              page,
-              limit: parseInt(limit, 10),
-              id: this.id,
-            },
-          });
-        } else {
-          response = await this.$apollo.query({
-            query: this.queryName,
-            variables: {
-              searchText,
-              searchColumn,
-              orderColumn,
-              orderDirection,
-              page,
-              limit: parseInt(limit, 10),
-            },
-          });
-        }
+        response = await this.$apollo.query({
+          query: this.queryName,
+          variables: {
+            searchText,
+            searchColumn,
+            orderColumn,
+            orderDirection,
+            page,
+            limit: parseInt(limit, 10),
+          },
+        });
 
         this.cells = [];
         this.rows = [];
@@ -438,7 +434,7 @@ export default {
         this.statistics.to = data.to;
 
         // Since pagination components handles page change we should not set
-        this.pagination.currentPage = data.current_page;
+        // this.pagination.currentPage = data.current_page;
         this.pagination.totalPageCount = data.last_page;
 
         this.currentParams.searchText = searchText;
@@ -450,6 +446,8 @@ export default {
       } catch (error) {
         if (this.checkApiRequestErrors({ that: this, error })) return;
       }
+
+      this.isLoading = false;
     },
   },
 };
